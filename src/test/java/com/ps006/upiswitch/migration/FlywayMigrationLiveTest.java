@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Verifies that all 5 Flyway migrations apply cleanly, schema integrity is enforced,
  * and database constraints reject invalid financial operations.
  */
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class FlywayMigrationLiveTest {
 
@@ -31,7 +31,7 @@ public class FlywayMigrationLiveTest {
 
     @BeforeAll
     static void setupFlyway() {
-        if (postgres.isRunning()) {
+        if (postgres != null && postgres.isRunning()) {
             flyway = Flyway.configure()
                     .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                     .locations("classpath:db/migration")

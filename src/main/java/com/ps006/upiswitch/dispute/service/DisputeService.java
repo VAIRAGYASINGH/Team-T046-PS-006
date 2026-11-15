@@ -197,7 +197,7 @@ public class DisputeService {
             dispute.setStatus(DisputeState.AUTO_ACCEPTED);
             dispute.setDeadline(null);
             disputeRepository.save(dispute);
-            recordEvent(disputeId, dispute.getTxnId(), DisputeAction.AUTO_ACCEPT, dispute.getDeadline(),
+            recordEvent(disputeId, dispute.getTxnId(), DisputeAction.AUTO_ACCEPT, timestamp,
                     previousState.name(), DisputeState.AUTO_ACCEPTED.name(), null, null, "SLA expired: auto-accepted");
             previousState = DisputeState.AUTO_ACCEPTED;
 

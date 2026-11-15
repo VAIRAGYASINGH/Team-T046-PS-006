@@ -1,26 +1,70 @@
+# ==============================
+# Maven / Java
+# ==============================
 target/
-build/
-out/
 *.class
 *.jar
+*.war
+*.ear
 
+# Keep Maven wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+# ==============================
+# IDEs
+# ==============================
 .idea/
 .vscode/
+*.iml
+.project
+.classpath
+.settings/
+.factorypath
 
+# ==============================
+# Environment variables / secrets
+# ==============================
 .env
 .env.*
 !.env.example
+application-local.properties
+application-secret.properties
+*.pem
+*.key
+secrets/
 
-scratch/
-*.tmp
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+
+# ==============================
+# Database files / backups
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+*.dump
 *.bak
+*.backup
 
-docs/
-QUALITY_GATE.md
-
-*.html
-*.pdf
-*.docx
-
+# ==============================
+# Operating system
+# ==============================
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.swp
+*.swo
+*.orig
+
+
+docs/
+
+scratch/

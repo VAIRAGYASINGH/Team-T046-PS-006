@@ -2,7 +2,7 @@ package com.ps006.upiswitch.command.loader;
 
 import com.ps006.upiswitch.common.entity.HolidayEntity;
 import com.ps006.upiswitch.common.repository.HolidayRepository;
-import com.ps006.upiswitch.common.util.BankingCalendarService;
+import com.ps006.upiswitch.common.util.BusinessCalendarService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,11 +25,11 @@ public class HolidayLoader {
     private static final String EXPECTED_HEADER = "date,name";
 
     private final HolidayRepository holidayRepository;
-    private final BankingCalendarService bankingCalendarService;
+    private final BusinessCalendarService businessCalendarService;
 
-    public HolidayLoader(HolidayRepository holidayRepository, BankingCalendarService bankingCalendarService) {
+    public HolidayLoader(HolidayRepository holidayRepository, BusinessCalendarService businessCalendarService) {
         this.holidayRepository = holidayRepository;
-        this.bankingCalendarService = bankingCalendarService;
+        this.businessCalendarService = businessCalendarService;
     }
 
     @Transactional
@@ -92,7 +92,7 @@ public class HolidayLoader {
                 seenDates.add(date);
 
                 holidayRepository.save(new HolidayEntity(date, name));
-                bankingCalendarService.addHoliday(date);
+                businessCalendarService.addHoliday(date);
                 result.incrementSuccess();
             }
         }
