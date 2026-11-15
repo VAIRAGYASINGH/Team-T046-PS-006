@@ -200,7 +200,7 @@ git clone https://github.com/VAIRAGYASINGH/Team-T046-PS-006.git
 cd 10Sec
 ```
 
-Replace `VAIRAGYASINGH` with the GitHub account hosting this repository.
+
 
 ### 2. Configure PostgreSQL
 
