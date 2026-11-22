@@ -1,5 +1,0 @@
-merchant_id,name,vpa,mcc,verified,bank_account,balance
-MER-001,Nandini Milk Parlour,nandini@icici,5411,false,021458421083,900000.00
-MER-002,Bengaluru Metro Recharge,bengaluru@icici,4111,true,906688281126,900000.00
-MER-003,Sapna Book House,sapna@icici,5942,true,844093244845,500000.00
-MER-004,Udupi Grand Restaurant,udupi@icici,5812,false,630976582802,900000.00
