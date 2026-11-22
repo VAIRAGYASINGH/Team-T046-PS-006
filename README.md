@@ -42,28 +42,28 @@ The system processes commands strictly in physical file order from `commands.txt
 │   ├── models.py                  # Domain models, dataclasses, and state enums
 │   ├── data.py                    # Master data loader (users, merchants, holidays)
 │   ├── parser.py                  # Strict physical file-order event parser
-│   ├── calendar_service.py        # Statutory holiday & working-day calculator (Phase 6)
-│   ├── validation.py              # BR-01 to BR-04, BR-07, BR-12 rule engine (Phase 3)
-│   ├── rrn_generator.py           # Deterministic 12-digit RRN generator (Phase 2)
-│   ├── reversals.py               # 30m timeout sweeps & late ACK reconciliation (Phase 4)
-│   ├── collect.py                 # Pull payment lifecycle & PIN thresholding (Phase 5)
-│   ├── disputes.py                # Merchant refunds & dispute state machine (Phase 6)
-│   ├── ledger.py                  # Double-entry ledger, reconciliation & statements (Phase 7)
-│   ├── payments.py                # Payment switch coordinator & transaction logger (Phases 2-8)
-│   ├── reports.py                 # Authoritative CSV report generator (Phase 8)
+│   ├── calendar_service.py        # Statutory holiday & working-day calculator 
+│   ├── validation.py              # BR-01 to BR-04, BR-07, BR-12 rule engine 
+│   ├── rrn_generator.py           # Deterministic 12-digit RRN generator 
+│   ├── reversals.py               # 30m timeout sweeps & late ACK reconciliation 
+│   ├── collect.py                 # Pull payment lifecycle & PIN thresholding 
+│   ├── disputes.py                # Merchant refunds & dispute state machine 
+│   ├── ledger.py                  # Double-entry ledger, reconciliation & statements 
+│   ├── payments.py                # Payment switch coordinator & transaction logger 
+│   ├── reports.py                 # Authoritative CSV report generator 
 │   └── main.py                    # CLI entrypoint executing complete pipeline
 │
 ├── tests/
 │   ├── __init__.py
-│   ├── test_data.py               # Data loading, Decimal types, and counter tests (Phase 1)
-│   ├── test_parser.py             # Parser order, line numbers, and syntax tests (Phase 1)
-│   ├── test_payments.py           # P2P/P2M payment processing & ledger tests (Phase 2)
-│   ├── test_validation.py         # Business rule limits BR-01 to BR-04, BR-12 (Phase 3)
-│   ├── test_reversals.py          # Auto-reversal & reconciliation tests (Phase 4)
-│   ├── test_collections.py        # Pull payment lifecycle & PIN rules (Phase 5)
-│   ├── test_disputes.py           # Refunds, disputes, calendar SLAs & settlement (Phase 6)
-│   ├── test_ledger.py             # Double-entry ledger & statement generation (Phase 7)
-│   └── test_integration.py        # End-to-end integration & 100% benchmark equality (Phase 8)
+│   ├── test_data.py               # Data loading, Decimal types, and counter tests 
+│   ├── test_parser.py             # Parser order, line numbers, and syntax tests 
+│   ├── test_payments.py           # P2P/P2M payment processing & ledger tests 
+│   ├── test_validation.py         # Business rule limits BR-01 to BR-04, BR-12 
+│   ├── test_reversals.py          # Auto-reversal & reconciliation tests 
+│   ├── test_collections.py        # Pull payment lifecycle & PIN rules 
+│   ├── test_disputes.py           # Refunds, disputes, calendar SLAs & settlement 
+│   ├── test_ledger.py             # Double-entry ledger & statement generation 
+│   └── test_integration.py        # End-to-end integration & 100% benchmark equality 
 │
 ├── output/                        # Official generated CSV audit reports
 │   ├── txn_log.csv                # Chronological transaction command events (51 rows)
