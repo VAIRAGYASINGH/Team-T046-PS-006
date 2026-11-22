@@ -1,9 +1,7 @@
 # PS-006: UPI Payment Switch with Limits, Reversals and Chargebacks
 
-**Team**: T046  
-**Domain**: BFSI — Unified Payments Interface (UPI) Core Switch  
+**Team**: T046    
 **Language**: Python 3.10+  
-**Verification Status**: PASSED (178/178 Tests Passing | 100% Benchmark Compliance)
 
 ---
 
@@ -79,82 +77,8 @@ The system processes commands strictly in physical file order from `commands.txt
 
 ---
 
-## 3. Implementation Details by Phase
 
-### Phase 1: Project Scaffolding, Data Loading & Event Ingestion
-- **`src/config.py`**: Resolves sample data paths and defines statutory constants (`P2P_MAX_AMOUNT = 1,00,000`, `P2M_VERIFIED_MAX_AMOUNT = 2,00,000`, `DAILY_DEBIT_AMOUNT_CAP = 1,00,000`, `DAILY_DEBIT_COUNT_CAP = 20`, cooling periods, PIN thresholds, and SLA windows).
-- **`src/models.py`**: Typed dataclasses (`User`, `Merchant`, `Holiday`, `Command` hierarchy) and enums (`TransactionStatus`, `LegType`, `DisputeType`, `DisputeAction`, `DisputeResultState`, `BeneResponseType`).
-- **`src/data.py`**: `load_master_data()` loads `users.csv`, `merchants.csv`, and `holidays.csv`. Strictly parses currency amounts into `Decimal` (zero use of `float`) and booleans (`verified`). Provides dictionary lookups and deep cloning for test isolation.
-- **`src/parser.py`**: `CommandParser.parse_file()` reads `commands.txt` line by line, preserving 1-indexed physical file line numbers, skipping `#` comments and blank lines without distorting line numbers, and validating syntax and arguments for all 10 command types.
-
-### Phase 2: Transaction Models & Basic Payment Processing
-- **`src/models.py`**: `Transaction` model supporting lifecycle tracking (`refunded_amount`, `reversed_at`, `deemed_success_at`, `rule_ids`, `is_p2m`, `merchant_verified`) and `LedgerEntry` model for double-entry journals.
-- **`src/rrn_generator.py`**: Deterministic 12-digit Retrieval Reference Number (RRN) generator with monotonic sequence and per-transaction caching.
-- **`src/ledger.py`**: `DoubleEntryLedger` managing balanced debit/credit legs, `SWITCH_CLEARING` escrow account balance, and closed-system financial balance conservation.
-- **`src/payments.py`**: `PaymentService` orchestrating push payments (`PAY`), escrow funding, duplicate detection, participant identification, and two-phase settlement.
-
-### Phase 3: Centralized Validation Engine & Payment Limits
-- **`src/validation.py`**: Centralized `ValidationEngine` with strict validation sequencing:
-  1. Duplicate transaction ID check (`DUPLICATE_TXN`)
-  2. Positive amount check (`INVALID_AMOUNT`)
-  3. Payer registration check (`UNKNOWN_PAYER`)
-  4. Payee registration check (`UNKNOWN_PAYEE`)
-  5. Daily calendar reset check (resets user counters if date advances)
-  6. `BR-01`: Per-transaction limit (P2P ₹1,00,000; P2M Verified ₹2,00,000; P2M Unverified ₹1,00,000)
-  7. `BR-02`: Daily cumulative amount cap (₹1,00,000 standard; ₹2,00,000 for verified P2M)
-  8. `BR-03`: Daily velocity limit (max 20 debits per day, NPCI U30 threshold)
-  9. `BR-04`: Risk cooling periods:
-     - `BR-04A`: New-VPA registration cooling (24h from `vpa_created_at`, ₹5,000 cap)
-     - `BR-04B`: New-Beneficiary cooling (first 3 payments within 24h, ₹5,000 cap)
-  10. `BR-12`: Available balance check (evaluated strictly LAST)
-- **`src/validation.py:BeneficiaryTracker`**: Manages payer-to-payee transaction history for new-beneficiary cooling periods.
-
-### Phase 4: Beneficiary Responses, Timeouts & Reversals
-- **`src/reversals.py`**: `ReversalEngine` implementing the UPI state machine:
-  - `BENE_RESPONSE ACK`: Confirms beneficiary credit, marks state `SUCCESS`, and releases escrow funds.
-  - `BENE_RESPONSE NACK`: Reverses transaction, returns escrow funds to payer, decrements daily velocity counters, and transitions state to `FAILED`.
-  - `TIMEOUT_JOB`: Sweeps in-flight `PENDING` transactions exceeding 30-minute window (1,800s), executing automated reversal back to payer with `status = REVERSED`.
-  - `Late ACK after Timeout (BR-06)`: Deemed success workflow. Re-debits payer if sufficient balance exists and credits beneficiary with `status = DEEMED_SUCCESS`. If payer has insufficient balance, logs audit incident and sets `status = RECON_SHORTFALL`.
-  - `Out-of-Order Packet Handling`: Detects response arrivals prior to payment initiation, maintaining network consistency.
-
-### Phase 5: UPI Collect Request Processing
-- **`src/collect.py`**: `CollectService` implementing the complete pull payment workflow:
-  - `COLLECT`: Validates requester and payer VPAs, enforces `BR-07` PIN threshold (amounts > ₹2,000 require MPIN flag `pin_flag = true`), and sets maximum expiry cap (72 hours = 4,320 minutes). Initiates request in `PENDING` state with zero financial movement.
-  - `COLLECT_APPROVE`: Authorizes pull payment. Checks expiry against timestamp (`t > t_expires` fails with `EXPIRED`), re-evaluates payment limits (`BR-01` to `BR-04`, `BR-12`), directly transfers funds atomically from payer to payee, increments daily counters, and sets `status = SUCCESS`.
-  - `COLLECT_DECLINE`: Rejection by payer. Marks transaction `status = DECLINED` with zero financial transfer and zero debit counter increment (velocity isolation).
-
-### Phase 6: Refunds, Disputes & Chargebacks
-- **`src/calendar_service.py`**: `BusinessCalendarService` calculating statutory working days, excluding Saturdays, Sundays, and official statutory bank holidays loaded from `holidays.csv` (notably 2026-11-09 Deepavali).
-- **`src/disputes.py`**:
-  - `RefundService`: Processes merchant-initiated `REFUND` commands on eligible P2M transactions. Validates original transaction status (`SUCCESS` or `DEEMED_SUCCESS`), ensures cumulative refunds do not exceed transaction amount, checks merchant liquidity, and executes double-entry debit on merchant and credit on user.
-  - `DisputeService`: Manages `TCC` (Transaction Confirmation Claim) and `CHARGEBACK` lifecycles. Enforces `BR-08` TCC window (T+5 calendar days raised by `BENEFICIARY_BANK`), `BR-09` Chargeback window (45 calendar days raised by `REMITTER`), and 5-working-day representment deadlines (`deadline = 23:59:59` on the 5th working day).
-  - Handles dispute actions: `ACCEPT` (triggers financial debit on merchant, credit on remitter, state `ACCEPTED`), `REPRESENT` (merchant defense within SLA window, state `REPRESENTED`), `PRE_ARBITRATION` (state `PRE_ARBITRATION`), and `CLOSE` (terminal state `CLOSED`).
-  - Automatic acceptance sweeps: Disputes with expired deadlines are auto-accepted with financial settlement during clock advances.
-
-### Phase 7: Double-Entry Ledger, Financial Reconciliation & Customer Statements
-- **`src/ledger.py`**:
-  - `DoubleEntryLedger`: Implements rigorous double-entry accounting where every economic movement consists of matching debit and credit legs. Tracks `SWITCH_CLEARING` escrow account balance.
-  - `ReconciliationEngine`: Audits double-entry invariants across all accounts:
-    - Sum of all debits equals sum of all credits (`variance == ₹0.00`).
-    - Total system balance (Users + Merchants + Switch Clearing) equals expected initial balance (₹6,036,500.00).
-    - Switch clearing balance exactly equals in-flight pending liability (`TXN-0038` ₹4,200.00).
-    - Individual account balances match their respective ledger entry net sums.
-  - `StatementService`: Generates customer transaction statements per participant VPA and date range (`STATEMENT vpa from_date to_date`), reporting transaction ID, timestamp, leg type, debit/credit amount, and accurate running balance.
-
-### Phase 8: Final Integration, Output Generation & System Verification
-- **`src/models.py`**: Added `TxnLogRow` and `TxnFinalRow` models with standard CSV row formatting.
-- **`src/reports.py`**: `ReportGenerator` pipeline emitting all 4 official output CSV files in `output/`:
-  1. `output/txn_log.csv`: Chronological command event log for `PAY`, `COLLECT`, `COLLECT_APPROVE`, `COLLECT_DECLINE`, `REFUND` (51 rows).
-  2. `output/txn_final.csv`: Authoritative final state for each unique transaction sorted by `txn_id` (46 rows).
-  3. `output/dispute_log.csv`: Chronological log for `DISPUTE` and `DISPUTE_ACTION` (17 rows).
-  4. `output/statements.csv`: Double-entry customer statement legs per `STATEMENT` command (60 rows).
-- **`src/payments.py`**: Native event capture for `txn_log_rows` and sorted transaction queries.
-- **`src/main.py`**: Unified entrypoint executing all 118 commands, generating the 4 reports, running financial reconciliation, and printing complete summary.
-- **`tests/test_integration.py`**: Comprehensive end-to-end integration suite verifying execution, report existence, schemas, row counts, determinism, immutability, and 100% field-for-field benchmark equality.
-
----
-
-## 4. Business Rules Catalog
+## 3. Business Rules Catalog
 
 | Rule ID | Name | Description | Regulatory Reference |
 |---|---|---|---|
@@ -174,7 +98,7 @@ The system processes commands strictly in physical file order from `commands.txt
 
 ---
 
-## 5. How to Run & Verify
+## 4. How to Run & Verify
 
 ### Environment Requirements
 - Python 3.10+ (Tested on Python 3.14.6)
@@ -198,7 +122,7 @@ python -m unittest discover tests -v
 
 ---
 
-## 6. Output Reports Specification
+## 5. Output Reports Specification
 
 All output CSV files are generated in `output/` using standard UTF-8 encoding, CRLF/LF line endings, and Decimal formatted amounts (`.2f`). Missing/empty fields are written as empty strings (no `None` or `null`).
 
@@ -248,7 +172,7 @@ Chronological double-entry customer statement legs per `STATEMENT` command:
 
 ---
 
-## 7. Known Scope Boundaries & Operating Assumptions
+## 6. Known Scope Boundaries & Operating Assumptions
 
 1. **Single-Node In-Memory Simulation**: All state is held in Python memory data structures. In a production multi-datacenter deployment, state would be persisted in an ACID-compliant distributed relational database with optimistic locking and distributed consensus.
 2. **Deterministic Sequence Clock**: Simulation time advances strictly based on timestamps found in incoming commands. Timeouts and SLA auto-acceptance sweeps trigger on clock advances.
